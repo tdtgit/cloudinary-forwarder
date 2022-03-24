@@ -2,16 +2,16 @@
 
 class TDTCloudinaryForwarder
 {
-    private string $cloudName;
-    private string $cloudMapping;
+    private $cloudName;
+    private $cloudMapping;
 
-    private string $imgRequestURL;
-    private string $imgRequestRegex = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)-([0-9]{1,4})(?:x)([0-9]{1,4})).*\.(jpe?g|gif|png)$/";
-    private string $imgRequestRegexOriginal = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)).*\.(jpe?g|gif|png|mp4)$/";
+    private $imgRequestURL;
+    private $imgRequestRegex = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)-([0-9]{1,4})(?:x)([0-9]{1,4})).*\.(jpe?g|gif|png)$/";
+    private $imgRequestRegexOriginal = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)).*\.(jpe?g|gif|png|mp4)$/";
 
-    private string $imgName;
-    private string $imgExtension;
-    private array $imgSize;
+    private $imgName;
+    private $imgExtension;
+    private $imgSize;
 
     // Constructor
     public function __construct()
@@ -23,18 +23,15 @@ class TDTCloudinaryForwarder
         $this->getRequestImg();
     }
 
-    //  php get full request URL
-    private function getRequestURL($is_fowarded = false)
+    public function getRequestURL($is_fowarded = false)
     {
         $ssl      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
-        $sp       = strtolower($_SERVER['SERVER_PROTOCOL']);
-        $protocol = substr($sp, 0, strpos($sp, '/')) . (($ssl) ? 's' : '');
         $port     = $_SERVER['SERVER_PORT'];
         $port     = ((!$ssl && $port == '80') || ($ssl && $port == '443')) ? '' : ':' . $port;
-        $http_host =isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : null;
+        $http_host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : null;
         $host     = ($is_fowarded && isset($_SERVER['HTTP_X_FORWARDED_HOST'])) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : $http_host;
         $host     = isset($host) ? $host : $_SERVER['SERVER_NAME'] . $port;
-        return $protocol . '://' . $host . $_SERVER['REQUEST_URI'];
+        return 'https://' . $host . $_SERVER['REQUEST_URI'];
     }
 
     private function getCloudinaryURL()
@@ -55,15 +52,15 @@ class TDTCloudinaryForwarder
 
     private function getImageSizing()
     {
-        if ($this->isResizeRequest() === false){
+        if ($this->isResizeRequest() === false) {
             return '';
         }
-        return 'c_scale,w_' . $this->imgSize['width'] . '/';
+        return 'c_scale,w_' . $this->imgSize['width'] . ',h_' . $this->imgSize['height'] . '/';
     }
 
     private function getImageFormatByAcceptHeader()
     {
-        if (str_contains("mp4|webm|ogg|ogv|mp3|wav|flac|aac|m4a|m4v|mov|wmv|avi|mkv|mpg|mpeg|3gp|3g2|gif", $this->imgExtension)) {
+        if (strpos("mp4|webm|ogg|ogv|mp3|wav|flac|aac|m4a|m4v|mov|wmv|avi|mkv|mpg|mpeg|3gp|3g2|gif", $this->imgExtension) !== false) {
             return 'f_auto,q_auto';
         }
         return $this->CloudinaryMapByAcceptHeader();
@@ -103,36 +100,35 @@ class TDTCloudinaryForwarder
     public function saveImg()
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->getCloudinaryURL());
-        curl_setopt($ch, CURLOPT_HEADER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.1 Safari/537.11');
-        $response = curl_exec($ch);
-
-        $headers = $this->getResponseHeader($response);
-        header("Content-Type: " . $headers['content-type']);
-        header("Content-Length: " . $headers['content-length']);
-        header("x-content-type-options: nosniff");
-        echo explode("\r\n\r\n", $response, 2)[1];
-    }
-
-    private function getResponseHeader($response)
-    {
-        $headers = array();
-
-        $header_text = substr($response, 0, strpos($response, "\r\n\r\n"));
-
-        foreach (explode("\r\n", $header_text) as $i => $line) {
-            if ($i === 0) {
-                $headers['http_code'] = $line;
-            } else {
-                list($key, $value) = explode(': ', $line);
-
-                $headers[$key] = $value;
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+        curl_setopt($ch, CURLOPT_URL, $this->getCloudinaryURL());
+        $response_headers = [];
+        curl_setopt(
+            $ch,
+            CURLOPT_HEADERFUNCTION,
+            function ($curl, $header) use (&$response_headers) {
+                $len = strlen($header);
+                $header = explode(':', $header, 2);
+                if (count($header) < 2) {
+                    return $len;
+                }
+                $response_headers[strtolower(trim($header[0]))][] = trim($header[1]);
+                return $len;
+            }
+        );
+        $response_body = curl_exec($ch);
+        $response_code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        http_response_code($response_code);
+        foreach ($response_headers as $name => $values) {
+            foreach ($values as $value) {
+                header($name . ': ' . $value);
             }
         }
-        return $headers;
+        header("x-service: cloudinary-forwarder");
+        echo $response_body;
     }
 
     // check $this->imgSize is not empty
@@ -143,7 +139,7 @@ class TDTCloudinaryForwarder
 
     private function isVideoRequest()
     {
-        if (in_array($this->imgExtension, ['mp4', 'webm', 'ogg', 'ogv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2', 'gif'])) {
+        if (in_array($this->imgExtension, ['mp4', 'webm', 'ogg', 'ogv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2'])) {
             return true;
         }
     }
