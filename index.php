@@ -89,11 +89,13 @@ class TDTCloudinaryForwarder
                 'height' => $matches[3][0]
             ];
             $this->imgExtension = strtolower($matches[4][0]);
-        } else {
-            preg_match_all($this->imgRequestRegexOriginal, $this->imgRequestURL, $matches);
+        } elseif (preg_match_all($this->imgRequestRegexOriginal, $this->imgRequestURL, $matches)) {
             $this->imgName = $matches[1][0];
             $this->imgSize = [];
             $this->imgExtension = strtolower($matches[2][0]);
+        } else {
+            http_response_code(404);
+            die();
         }
     }
 
