@@ -15,12 +15,6 @@ jobs:
       - name: 'Build:dockerimage'
         run: |
           docker build -t tdtgit/cloudinary-forwarder:latest .
-          
-  push-to-dockerhub:
-    name: 'Push'
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
       - name: 'Push:dockerimage'
         run: |
           docker login -u tdtgit -p ${{ secrets.PAT }}
