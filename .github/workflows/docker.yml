@@ -13,10 +13,14 @@ jobs:
       - name: "Build:checkout"
         uses: actions/checkout@v2
       - name: 'Build:dockerimage'
-        uses: docker/build-push-action@v1
-        with:
-          registry: ghcr.io
-          username: "tdtgit"
-          password: ${{ secrets.PAT }}
-          repository: tdtgit/cloudinary-forwarder
-          tags: latest
+        run: |
+          docker build -t tdtgit/cloudinary-forwarder:latest .
+          
+  push-to-dockerhub:
+    name: 'Push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Push:dockerimage'
+        run: |
+          docker login -u tdtgit -p ${{ secrets.PAT }}
+          docker push tdtgit/cloudinary-forwarder
