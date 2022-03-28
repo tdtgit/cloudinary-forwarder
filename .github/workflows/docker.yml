@@ -18,6 +18,7 @@ jobs:
           
   push-to-dockerhub:
     name: 'Push'
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: 'Push:dockerimage'
