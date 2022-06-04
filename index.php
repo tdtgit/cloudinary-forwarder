@@ -23,13 +23,13 @@ class TDTCloudinaryForwarder
         $this->getRequestImg();
     }
 
-    public function getRequestURL($is_fowarded = false)
+    public function getRequestURL($is_forwarded = false)
     {
         $ssl      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
         $port     = $_SERVER['SERVER_PORT'];
         $port     = ((!$ssl && $port == '80') || ($ssl && $port == '443')) ? '' : ':' . $port;
         $http_host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : null;
-        $host     = ($is_fowarded && isset($_SERVER['HTTP_X_FORWARDED_HOST'])) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : $http_host;
+        $host     = ($is_forwarded && isset($_SERVER['HTTP_X_FORWARDED_HOST'])) ? $_SERVER['HTTP_X_FORWARDED_HOST'] : $http_host;
         $host     = isset($host) ? $host : $_SERVER['SERVER_NAME'] . $port;
         return 'https://' . $host . $_SERVER['REQUEST_URI'];
     }
@@ -42,7 +42,7 @@ class TDTCloudinaryForwarder
         // From tuandev-s3/2022/01/cloudflare-chrome.png to f_auto/tuandev-s3/2022/01/cloudflare-chrome.png
         $theURL  = $this->getImageSizing() . $this->getImageFormatByAcceptHeader() . '/' . $theURL;
 
-        // Add endpoint to the start
+        // Prepend /upload/ to the URL
         $theURL = '/upload/' . $theURL;
 
         $theURL = $this->cloudUploadEndpoint . ($this->isVideoRequest() ? '/video' : '/image') . $theURL;
@@ -133,17 +133,18 @@ class TDTCloudinaryForwarder
         echo $response_body;
     }
 
-    // check $this->imgSize is not empty
     private function isResizeRequest()
     {
         return !empty($this->imgSize);
     }
 
+    // If the extension is video format, return true
     private function isVideoRequest()
     {
         if (in_array($this->imgExtension, ['mp4', 'webm', 'ogg', 'ogv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2'])) {
             return true;
         }
+        return false;
     }
 }
 
