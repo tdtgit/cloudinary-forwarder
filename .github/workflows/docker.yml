@@ -22,6 +22,10 @@ jobs:
           else
             BRANCH_NAME="${GITHUB_REF##*/}"
           fi
+
+          if [ "$BRANCH_NAME" == "master" ]; then
+            BRANCH_NAME="latest"
+          fi
           
           docker build -t tdtgit/cloudinary-forwarder:$BRANCH_NAME .
           docker login -u tdtgit -p ${{ secrets.PAT }}
