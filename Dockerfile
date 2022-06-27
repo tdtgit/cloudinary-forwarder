@@ -10,6 +10,5 @@ RUN echo -ne "env[CLOUDINARY_CLOUD_NAME] = \$CLOUDINARY_CLOUD_NAME\nenv[CLOUDINA
 COPY index.php /var/www/html/index.php
 
 ADD docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["sh", "/entrypoint.sh"]
