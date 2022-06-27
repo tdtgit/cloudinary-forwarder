@@ -1,5 +1,14 @@
-FROM romeoz/docker-apache-php
+FROM alpine:3.14
 
-COPY . /var/www/app/
+RUN apk add \
+    php8 php8-fpm php8-curl \
+    nginx
 
-EXPOSE 80
+COPY docker/site.conf /etc/nginx/http.d/default.conf
+
+COPY index.php /var/www/html/index.php
+
+ADD docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
