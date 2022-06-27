@@ -14,9 +14,15 @@ jobs:
       - name: "Build:checkout"
         uses: actions/checkout@v2
       - name: 'Build:dockerimage'
+        env:
+          IS_PR: ${{ github.EVENT_NAME == 'pull_request' }}
         run: |
-          docker build -t tdtgit/cloudinary-forwarder:${GITHUB_REF##*/} .
-      - name: 'Push:dockerimage'
-        run: |
+          if ${IS_PR}; then
+            BRANCH_NAME="${GITHUB_HEAD_REF}"
+          else
+            BRANCH_NAME="${GITHUB_REF##*/}"
+          fi
+          
+          docker build -t tdtgit/cloudinary-forwarder:$BRANCH_NAME .
           docker login -u tdtgit -p ${{ secrets.PAT }}
-          docker push tdtgit/cloudinary-forwarder
+          docker push tdtgit/cloudinary-forwarder:$BRANCH_NAME
