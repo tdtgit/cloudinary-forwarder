@@ -6,7 +6,7 @@ class TDTCloudinaryForwarder
     private $cloudMapping;
 
     private $imgRequestURL;
-    private $imgRequestRegex = "/wp-content\/uploads\/([a-z\-_0-9\/\:\.]*)?\.(jpe?g|png|gif|webp|avif|tiff)/i";
+    private $imgRequestRegex = "/wp-content\/uploads\/(.*?)\.(jpe?g|png|gif|webp|avif|tiff)/i";
 
     private $imgName;
     private $imgExtension;
