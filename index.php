@@ -15,14 +15,19 @@ class TDTCloudinaryForwarder
     // Constructor
     public function __construct()
     {
-        $this->cloudName = getenv('CLOUDINARY_CLOUD_NAME');
-        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING');
+        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') || CLOUDINARY_CLOUD_NAME;
+        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') || CLOUDINARY_CLOUD_MAPPING;
+
+        if (empty($this->cloudName) || empty($this->cloudMapping)) {
+            throw new Exception('Cloudinary configuration is missing');
+        }
+
         $this->cloudUploadEndpoint = 'https://res.cloudinary.com/' . $this->cloudName;
 
-        $this->getRequestImg();
+        $this->getRequestedImg();
     }
 
-    private function getRequestURL($is_forwarded = false)
+    private function getRequestedURL($is_forwarded = false)
     {
         $ssl      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
         $port     = $_SERVER['SERVER_PORT'];
@@ -82,9 +87,9 @@ class TDTCloudinaryForwarder
         }
     }
 
-    private function getRequestImg()
+    private function getRequestedImg()
     {
-        $this->imgRequestURL = $this->getRequestURL();
+        $this->imgRequestURL = $this->getRequestedURL();
 
         if (preg_match_all($this->imgRequestRegex, $this->imgRequestURL, $matches)) {
             $this->imgName = $matches[1][0];
