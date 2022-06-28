@@ -6,8 +6,7 @@ class TDTCloudinaryForwarder
     private $cloudMapping;
 
     private $imgRequestURL;
-    private $imgRequestRegex = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)-([0-9]{1,4})(?:x)([0-9]{1,4})).*\.(jpe?g|gif|png)$/";
-    private $imgRequestRegexOriginal = "/^(?:.*(?:\/wp-content\/uploads\/)(.*)).*\.(jpe?g|gif|png|mp4)$/";
+    private $imgRequestRegex = "/wp-content\/uploads\/([a-z\-_0-9\/\:\.]*)?\.(jpe?g|png|gif|webp|avif|tiff)/i";
 
     private $imgName;
     private $imgExtension;
@@ -23,7 +22,7 @@ class TDTCloudinaryForwarder
         $this->getRequestImg();
     }
 
-    public function getRequestURL($is_forwarded = false)
+    private function getRequestURL($is_forwarded = false)
     {
         $ssl      = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on');
         $port     = $_SERVER['SERVER_PORT'];
@@ -55,12 +54,17 @@ class TDTCloudinaryForwarder
         if ($this->isResizeRequest() === false) {
             return '';
         }
-        return 'c_scale,w_' . $this->imgSize['width'] . ',h_' . $this->imgSize['height'] . '/';
+
+        $sizing = '';
+        $sizing .= $this->imgSize['width'] > 0 ? ',w_' . $this->imgSize['width'] : '';
+        $sizing .= $this->imgSize['height'] > 0 ? ',h_' . $this->imgSize['height'] : '';
+
+        return 'c_scale' . $sizing . '/';
     }
 
     private function getImageFormatByAcceptHeader()
     {
-        if (strpos("mp4|webm|ogg|ogv|mp3|wav|flac|aac|m4a|m4v|mov|wmv|avi|mkv|mpg|mpeg|3gp|3g2|gif", $this->imgExtension) !== false) {
+        if ($this->isVideoRequest()) {
             return 'f_auto,q_auto';
         }
         return $this->CloudinaryMapByAcceptHeader();
@@ -84,14 +88,17 @@ class TDTCloudinaryForwarder
 
         if (preg_match_all($this->imgRequestRegex, $this->imgRequestURL, $matches)) {
             $this->imgName = $matches[1][0];
-            $this->imgSize = [
-                'width' => $matches[2][0],
-                'height' => $matches[3][0]
-            ];
-            $this->imgExtension = strtolower($matches[4][0]);
-        } elseif (preg_match_all($this->imgRequestRegexOriginal, $this->imgRequestURL, $matches)) {
-            $this->imgName = $matches[1][0];
+
             $this->imgSize = [];
+            if (preg_match_all('/-([0-9]+)x([0-9]+)$/', $this->imgName, $s_matches)) {
+                $this->imgSize = [
+                    'width' => $s_matches[1][0],
+                    'height' => $s_matches[2][0]
+                ];
+                // To remove the size from the filename
+                $this->imgName = preg_replace('/-([0-9]+)x([0-9]+)$/', '', $this->imgName);
+            }
+
             $this->imgExtension = strtolower($matches[2][0]);
         } else {
             http_response_code(404);
