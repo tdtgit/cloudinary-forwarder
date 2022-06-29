@@ -15,8 +15,8 @@ class TDTCloudinaryForwarder
     // Constructor
     public function __construct()
     {
-        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') || CLOUDINARY_CLOUD_NAME;
-        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') || CLOUDINARY_CLOUD_MAPPING;
+        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') ?: CLOUDINARY_CLOUD_NAME;
+        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') ?: CLOUDINARY_CLOUD_MAPPING;
 
         if (empty($this->cloudName) || empty($this->cloudMapping)) {
             throw new Exception('Cloudinary configuration is missing');
