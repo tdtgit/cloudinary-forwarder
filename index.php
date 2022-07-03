@@ -15,14 +15,15 @@ class TDTCloudinaryForwarder
     // Constructor
     public function __construct()
     {
-        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') ?: CLOUDINARY_CLOUD_NAME;
+        $this->cloudName = getenv('CLOUDINARY_CLOUD_NAME') ?: CLOUDINARY_CLOUD_NAME;
         $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') ?: CLOUDINARY_CLOUD_MAPPING;
+        $this->cloudUploadEndpoint = 'https://res.cloudinary.com/' . $this->cloudName;
 
         if (empty($this->cloudName) || empty($this->cloudMapping)) {
             throw new Exception('Cloudinary configuration is missing');
         }
 
-        $this->cloudUploadEndpoint = 'https://res.cloudinary.com/' . $this->cloudName;
+        $this->enableImgHeightVerify = false;
 
         $this->getRequestedImg();
     }
@@ -56,18 +57,40 @@ class TDTCloudinaryForwarder
 
     private function isValidImageSize()
     {
-        // if $this->imgSize['height'] and $this->imgSize['width'] are empty, then they're original size
-        if ($this->imgSize['height'] > 0 && $this->imgSize['width'] > 0) {
-            return true;
-        }
+        $wp_image_sizes = array(
+            'medium' => array(
+                'width'  => 300,
+            ),
+            'large' => array(
+                'width'  => 1024,
+            ),
+            'enigma-mobile' => array(
+                'width'  => 325,
+            ),
+            'enigma-mobile-2x' => array(
+                'width'  => 650,
+            ),
+            'enigma-mobile-3x' => array(
+                'width'  => 975,
+            ),
+            'enigma-desktop' => array(
+                'width'  => 750,
+            ),
+            'enigma-desktop-2x' => array(
+                'width'  => 1500,
+            ),
+            'enigma-desktop-3x' => array(
+                'width'  => 2250,
+            ),
+        );
 
-        // Check if the $img_width match any in WordPress's registered size
-        foreach (wp_get_registered_image_subsizes() as $size => $size_info) {
+        // Check if match any in WordPress's registered size
+        foreach ($wp_image_sizes as $size => $size_info) {
             if ($this->imgSize['width'] == $size_info['width']) {
                 return true;
             }
 
-            if ($this->imgSize['height'] == $size_info['height']) {
+            if ($this->enableImgHeightVerify && $this->imgSize['height'] == $size_info['height']) {
                 return true;
             }
         }
@@ -83,7 +106,7 @@ class TDTCloudinaryForwarder
 
         $sizing = '';
         $sizing .= $this->imgSize['width'] > 0 ? ',w_' . $this->imgSize['width'] : '';
-        $sizing .= $this->imgSize['height'] > 0 ? ',h_' . $this->imgSize['height'] : '';
+        $sizing .= ($this->enableImgHeightVerify && $this->imgSize['height'] > 0) ? ',h_' . $this->imgSize['height'] : '';
 
         return 'c_scale' . $sizing . '/';
     }
@@ -121,6 +144,12 @@ class TDTCloudinaryForwarder
                     'width' => $s_matches[1][0],
                     'height' => $s_matches[2][0]
                 ];
+
+                if ($this->isValidImageSize() === false) {
+                    http_response_code(404);
+                    die();
+                }
+                
                 // To remove the size from the filename
                 $this->imgName = preg_replace('/-([0-9]+)x([0-9]+)$/', '', $this->imgName);
             } else {
@@ -173,11 +202,10 @@ class TDTCloudinaryForwarder
 
     private function isResizeRequest()
     {
-        // If this is not valid image size, then it's not a resize request, return original
-        if ($this->isValidImageSize() === false) {
-            return false;
+        if ($this->imgSize['height'] > 0 && $this->imgSize['width'] > 0) {
+            return true;
         }
-        return !empty($this->imgSize);
+        return false;
     }
 
     // If the extension is video format, return true
