@@ -15,8 +15,8 @@ class TDTCloudinaryForwarder
     // Constructor
     public function __construct()
     {
-        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') || CLOUDINARY_CLOUD_NAME;
-        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') || CLOUDINARY_CLOUD_MAPPING;
+        $this->cloudName =  getenv('CLOUDINARY_CLOUD_NAME') ?: CLOUDINARY_CLOUD_NAME;
+        $this->cloudMapping = getenv('CLOUDINARY_CLOUD_MAPPING') ?: CLOUDINARY_CLOUD_MAPPING;
 
         if (empty($this->cloudName) || empty($this->cloudMapping)) {
             throw new Exception('Cloudinary configuration is missing');
@@ -52,6 +52,27 @@ class TDTCloudinaryForwarder
         $theURL = $this->cloudUploadEndpoint . ($this->isVideoRequest() ? '/video' : '/image') . $theURL;
 
         return $theURL;
+    }
+
+    private function isValidImageSize()
+    {
+        // if $this->imgSize['height'] and $this->imgSize['width'] are empty, then they're original size
+        if ($this->imgSize['height'] > 0 && $this->imgSize['width'] > 0) {
+            return true;
+        }
+
+        // Check if the $img_width match any in WordPress's registered size
+        foreach (wp_get_registered_image_subsizes() as $size => $size_info) {
+            if ($this->imgSize['width'] == $size_info['width']) {
+                return true;
+            }
+
+            if ($this->imgSize['height'] == $size_info['height']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function getImageSizing()
@@ -102,6 +123,11 @@ class TDTCloudinaryForwarder
                 ];
                 // To remove the size from the filename
                 $this->imgName = preg_replace('/-([0-9]+)x([0-9]+)$/', '', $this->imgName);
+            } else {
+                $this->imgSize = [
+                    'width' => 0,
+                    'height' => 0
+                ];
             }
 
             $this->imgExtension = strtolower($matches[2][0]);
@@ -147,6 +173,10 @@ class TDTCloudinaryForwarder
 
     private function isResizeRequest()
     {
+        // If this is not valid image size, then it's not a resize request, return original
+        if ($this->isValidImageSize() === false) {
+            return false;
+        }
         return !empty($this->imgSize);
     }
 
