@@ -149,7 +149,7 @@ class TDTCloudinaryForwarder
                     http_response_code(404);
                     die();
                 }
-                
+
                 // To remove the size from the filename
                 $this->imgName = preg_replace('/-([0-9]+)x([0-9]+)$/', '', $this->imgName);
             } else {
@@ -211,7 +211,7 @@ class TDTCloudinaryForwarder
     // If the extension is video format, return true
     private function isVideoRequest()
     {
-        if (in_array($this->imgExtension, ['mp4', 'webm', 'ogg', 'ogv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2'])) {
+        if (in_array($this->imgExtension, ['gif', 'mp4', 'webm', 'ogg', 'ogv', 'mp3', 'wav', 'flac', 'aac', 'm4a', 'm4v', 'mov', 'wmv', 'avi', 'mkv', 'mpg', 'mpeg', '3gp', '3g2'])) {
             return true;
         }
         return false;
