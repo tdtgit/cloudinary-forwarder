@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: "Build:checkout"
         uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v1
       - name: 'Build:dockerimage'
         env:
           IS_PR: ${{ github.EVENT_NAME == 'pull_request' }}
@@ -28,5 +33,4 @@ jobs:
           fi
           
           docker login -u tdtgit -p ${{ secrets.PAT }}
-          docker build -t tdtgit/cloudinary-forwarder:$BRANCH_NAME .
-          docker push tdtgit/cloudinary-forwarder:$BRANCH_NAME
+          docker buildx build --push --platform linux/arm/v7,linux/arm64,linux/amd64 -t tdtgit/sitemap-warmer:$BRANCH_NAME .
