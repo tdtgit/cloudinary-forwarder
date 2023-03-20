@@ -33,4 +33,4 @@ jobs:
           fi
           
           docker login -u tdtgit -p ${{ secrets.PAT }}
-          docker buildx build --push --platform linux/arm/v7,linux/arm64,linux/amd64 -t tdtgit/sitemap-warmer:$BRANCH_NAME .
+          docker buildx build --push --platform linux/arm/v7,linux/arm64,linux/amd64 -t tdtgit/cloudinary-forwarder:$BRANCH_NAME .
